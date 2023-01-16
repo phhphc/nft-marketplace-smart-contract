@@ -3,7 +3,7 @@ pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
-import "./Trader.sol";
+import "./marketplace/Trader.sol";
 
 contract Marketplace is IERC721Receiver, Trader {
     enum ERC721ReceivedActionType {

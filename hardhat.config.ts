@@ -25,7 +25,7 @@ const config: HardhatUserConfig = {
             .readdirSync("contracts")
             .filter(x => x.match(/^.+\.sol$/))
             .map(x => x.replace(/\.sol$/, ""))
-            .concat("IERC721$"),
+            .concat("IERC721Metadata$"),
     },
 };
 

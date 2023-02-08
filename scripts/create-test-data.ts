@@ -14,7 +14,10 @@ async function main() {
     console.log(`Mytoken deployed to ${myToken.address}`);
 
     const tokenIds = Array.from(Array(10).keys());
-    const tokenUris = tokenIds.map(v => "https://test.com/" + v);
+    const tokenUris = tokenIds.map(
+        v =>
+            "https://gateway.pinata.cloud/ipfs/QmSdLVPFkZ2VUvgVS4qWE65ikp9e7VxB2AWmf7QZseEtg4?_gl=1*faoo47*_ga*MTc3NzUzNzc4NC4xNjc1MDg3NjAx*_ga_5RMPXG14TE*MTY3NTA4NzYwMi4xLjEuMTY3NTA4ODUwOS41Ny4wLjA.",
+    );
     for (let uri of tokenUris) {
         await myToken.safeMint(owner.address, uri);
     }

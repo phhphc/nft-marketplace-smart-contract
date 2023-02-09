@@ -1,5 +1,6 @@
 {
   "devDependencies": {
+    "@faker-js/faker": "^7.6.0",
     "@nomicfoundation/hardhat-toolbox": "^2.0.1",
     "hardhat": "^2.12.6",
     "hardhat-abi-exporter": "^2.10.1",

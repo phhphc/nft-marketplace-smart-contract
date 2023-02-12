@@ -13,13 +13,15 @@ async function main() {
     await myToken.deployed();
     console.log(`Mytoken deployed to ${myToken.address}`);
 
-    const tokenIds = Array.from(Array(10).keys());
-    const tokenUris = tokenIds.map(v => "https://test.com/" + v);
+    const tokenIds = Array.from(Array(30).keys());
+    const tokenUris = tokenIds.map(
+        v => `https://gateway.pinata.cloud/ipfs/QmYTUyhsTWGkzGMDrgTJmDnzcuYEwejzPR6o7GVZ3LcmRv/${v}.json`,
+    );
     for (let uri of tokenUris) {
         await myToken.safeMint(owner.address, uri);
     }
 
-    const listingIds = Array.from(Array(5).keys());
+    const listingIds = Array.from(Array(25).keys());
     const listingPrices = listingIds.map(v => ethers.utils.parseUnits(String(v), "gwei"));
     const listingDatas = listingPrices.map(v => ethers.utils.defaultAbiCoder.encode(["int8", "uint256"], [0, v]));
     for (let id of listingIds) {

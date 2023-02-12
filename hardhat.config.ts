@@ -8,12 +8,19 @@ dotEnvConfig();
 
 const GANACHE_PRIVATE_KEY = process.env.GANACHE_PRIVATE_KEY || "";
 
+const DEVNET_URL = process.env.DEVNET_URL || "";
+const DEVNET_PRIVATE_KEY = process.env.DEVNET_PRIVATE_KEY || "";
+
 const config: HardhatUserConfig = {
     solidity: "0.8.9",
     networks: {
         ganache: {
             url: "HTTP://127.0.0.1:7545",
             accounts: [GANACHE_PRIVATE_KEY],
+        },
+        devnet: {
+            url: DEVNET_URL,
+            accounts: [DEVNET_PRIVATE_KEY],
         },
     },
     abiExporter: {
@@ -25,7 +32,7 @@ const config: HardhatUserConfig = {
             .readdirSync("contracts")
             .filter(x => x.match(/^.+\.sol$/))
             .map(x => x.replace(/\.sol$/, ""))
-            .concat("IERC721$"),
+            .concat("IERC721Metadata$"),
     },
 };
 

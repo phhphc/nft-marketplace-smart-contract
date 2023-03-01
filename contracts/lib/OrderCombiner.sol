@@ -51,10 +51,6 @@ contract OrderCombiner is Executor, OrderValidator, AmountDeriver {
         Order memory order,
         address recipient
     ) internal returns (bool) {
-        console.log("offerer:", order.parameters.offerer);
-        console.log("zone:", order.parameters.zone);
-        console.log("consideration recipient:", order.parameters.consideration[0].recipient);
-
         // Validate order, update status, and determine fraction to fill.
         bytes32 orderHash = _validateOrderAndUpdateStatus(order, true);
 

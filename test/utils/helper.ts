@@ -47,9 +47,7 @@ export const signOrder = async (orderComponents: OrderComponents, signer: Wallet
         ],
     };
 
-    console.log("start sign");
     const signature = await signer._signTypedData(domain, orderType, orderComponents);
-    console.log("end sign");
 
     return signature;
 };

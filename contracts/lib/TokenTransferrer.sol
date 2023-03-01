@@ -299,9 +299,6 @@ contract TokenTransferrer is TokenTransferrerErrors {
         address to,
         uint256 identifier
     ) internal {
-        console.log("from", from);
-        console.log("to  ", to);
-
         // Utilize assembly to perform an optimized ERC721 token transfer.
         assembly {
             // If the token has no code, revert.

@@ -1,28 +1,32 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.17;
 
-import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import "./lib/Trader.sol";
 
-import "./marketplace/Trader.sol";
-
-contract Marketplace is IERC721Receiver, Trader {
-    enum ERC721ReceivedActionType {
-        Listing
+contract Marketplace is Trader {
+    /**
+     * @dev Internal pure function to retrieve and return the name of this
+     *      contract.
+     *
+     * @return The name of this contract.
+     */
+    function _name() internal pure override returns (string memory) {
+        // Return the name of the contract.
+        assembly {
+            mstore(0x20, 0x20)
+            mstore(0x4b, 0x0b4d61726b6574706c616365)
+            return(0x20, 0x60)
+        }
     }
 
-    function onERC721Received(
-        address,
-        address from,
-        uint256 tokenId,
-        bytes calldata data
-    ) external override returns (bytes4) {
-        ERC721ReceivedActionType action = ERC721ReceivedActionType(abi.decode(data[:32], (uint8)));
-
-        if (action == ERC721ReceivedActionType.Listing) {
-            uint256 value = abi.decode(data[32:], (uint256));
-            _newListing(from, msg.sender, tokenId, value);
-        }
-
-        return this.onERC721Received.selector;
+    /**
+     * @dev Internal pure function to retrieve the name of this contract as a
+     *      string that will be used to derive the name hash in the constructor.
+     *
+     * @return The name of this contract as a string.
+     */
+    function _nameString() internal pure override returns (string memory) {
+        // Return the name of the contract.
+        return "Marketplace";
     }
 }

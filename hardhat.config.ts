@@ -12,7 +12,7 @@ const DEVNET_URL = process.env.DEVNET_URL || "";
 const DEVNET_PRIVATE_KEY = process.env.DEVNET_PRIVATE_KEY || "";
 
 const config: HardhatUserConfig = {
-    solidity: "0.8.9",
+    solidity: "0.8.17",
     networks: {
         ganache: {
             url: "HTTP://127.0.0.1:7545",

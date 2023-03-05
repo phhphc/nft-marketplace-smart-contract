@@ -1,9 +1,10 @@
-import { Contract, Wallet } from "ethers";
+import { Contract, Wallet, BigNumberish } from "ethers";
 import { calculateOrderHash } from "./encoding";
 import { Domain, OrderComponents } from "./types";
 import { expect } from "chai";
 import { getAddress, keccak256, toUtf8Bytes, recoverAddress } from "ethers/lib/utils";
 import { ethers } from "hardhat";
+import { randomBN } from "./encoding";
 
 // export const getAndVerifyOrderHash = async (orderComponents: OrderComponents) => {
 //     const orderHash = await marketplaceContract.getOrderHash(orderComponents);
@@ -51,3 +52,5 @@ export const signOrder = async (orderComponents: OrderComponents, signer: Wallet
 
     return signature;
 };
+
+export const minRandom = (min: BigNumberish) => randomBN(10).add(min);

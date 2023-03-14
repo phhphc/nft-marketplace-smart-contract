@@ -58,7 +58,7 @@ contract OrderValidator is Verifiers {
             )
         ) {
             // Assuming an invalid order status and no revert, return zero fill.
-            return orderHash;
+            return bytes32(0);
         }
 
         // If the order is not already validated, verify the supplied signature.
@@ -68,6 +68,7 @@ contract OrderValidator is Verifiers {
 
         orderStatus.isValidated = true;
         orderStatus.isCancelled = false;
+        orderStatus.isFulFilled = true;
 
         // Return order hash, new numerator and denominator.
         return orderHash;
@@ -251,11 +252,11 @@ contract OrderValidator is Verifiers {
      */
     function _getOrderStatus(
         bytes32 orderHash
-    ) internal view returns (bool isValidated, bool isCancelled) {
+    ) internal view returns (bool isValidated, bool isCancelled, bool isFulFilled) {
         // Retrieve the order status using the order hash.
         OrderStatus storage orderStatus = _orderStatus[orderHash];
 
         // Return the fields on the order status.
-        return (orderStatus.isValidated, orderStatus.isCancelled);
+        return (orderStatus.isValidated, orderStatus.isCancelled, orderStatus.isFulFilled);
     }
 }

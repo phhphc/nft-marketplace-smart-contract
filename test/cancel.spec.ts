@@ -14,7 +14,7 @@ describe(`Cancel (${MARKETPLACE_NAME} v${MARKETPLACE_VERSION})`, function () {
         it("owner cancel single order", async () => {
             const { marketplace, marketplaceOwner, createOrder } = await loadFixture(marketplaceFixture);
             const { seller, buyer, zone } = await loadFixture(accountsFixture);
-            const { erc721, mintAndApproveAll721, getTestItem721 } = await loadFixture(erc721Fixture);
+            const { mintAndApproveAll721, getTestItem721 } = await loadFixture(erc721Fixture);
 
             const tokenId = await mintAndApproveAll721(seller, marketplace.address);
 
@@ -37,7 +37,7 @@ describe(`Cancel (${MARKETPLACE_NAME} v${MARKETPLACE_VERSION})`, function () {
                 .to.emit(marketplace, "OrderCancelled")
                 .withArgs(orderHash, seller.address, zone.address);
 
-            expect(await marketplace.getOrderStatus(orderHash)).to.deep.equal([false, true]);
+            expect(await marketplace.getOrderStatus(orderHash)).to.deep.equal([false, true, false]);
 
             await expect(marketplace.connect(buyer).fulfillOrder(order, { value }))
                 .to.revertedWithCustomError(marketplace, "OrderIsCancelled")

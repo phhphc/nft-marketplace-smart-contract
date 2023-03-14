@@ -7,7 +7,8 @@ import {
     OfferItem,
     Order,
     OrderParameters,
-    ReceivedItem
+    ReceivedItem,
+    FulfillmentComponent
 } from "./TraderStructs.sol";
 
 import {
@@ -1129,22 +1130,19 @@ contract ConsiderationDecoder {
      *               and returning a nested dynamic array of dynamic arrays of
      *               FulfillmentComponent types.
      */
-    // function _toNestedFulfillmentComponentsReturnType(
-    //     function(CalldataPointer) internal pure returns (MemoryPointer) inFn
-    // )
-    //     internal
-    //     pure
-    //     returns (
-    //         function(CalldataPointer)
-    //             internal
-    //             pure
-    //             returns (FulfillmentComponent[][] memory) outFn
-    //     )
-    // {
-    //     assembly {
-    //         outFn := inFn
-    //     }
-    // }
+    function _toNestedFulfillmentComponentsReturnType(
+        function(CalldataPointer) internal pure returns (MemoryPointer) inFn
+    )
+        internal
+        pure
+        returns (
+            function(CalldataPointer) internal pure returns (FulfillmentComponent[][] memory) outFn
+        )
+    {
+        assembly {
+            outFn := inFn
+        }
+    }
 
     /**
      * @dev Converts a function taking a calldata pointer and returning a memory

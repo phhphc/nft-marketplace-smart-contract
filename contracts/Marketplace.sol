@@ -29,4 +29,8 @@ contract Marketplace is Trader {
         // Return the name of the contract.
         return "Marketplace";
     }
+
+    fallback() external payable {
+        revert("error");
+    }
 }

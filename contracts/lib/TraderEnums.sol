@@ -27,3 +27,10 @@ enum ItemType {
     // 3: ERC1155 items
     ERC1155
 }
+
+enum Side {
+    // 0: Items that can be spent
+    OFFER,
+    // 1: Items that must be received
+    CONSIDERATION
+}

@@ -241,23 +241,15 @@ contract Verifiers is Assertions, SignatureVerification {
         // uint256 orderStatusNumerator = orderStatus.numerator;
 
         // // If the order is not entirely unused...
-        // if (orderStatusNumerator != 0) {
-        //     // ensure the order has not been partially filled when not allowed.
-        //     if (onlyAllowUnused) {
-        //         // Always revert on partial fills when onlyAllowUnused is true.
-        //         _revertOrderPartiallyFilled(orderHash);
-        //     }
-        //     // Otherwise, ensure that order has not been entirely filled.
-        //     else if (orderStatusNumerator >= orderStatus.denominator) {
-        //         // Only revert if revertOnInvalid has been supplied as true.
-        //         if (revertOnInvalid) {
-        //             _revertOrderAlreadyFilled(orderHash);
-        //         }
+        if (orderStatus.isFulFilled == true) {
+            // Only revert if revertOnInvalid has been supplied as true.
+            if (revertOnInvalid) {
+                _revertOrderAlreadyFilled(orderHash);
+            }
 
-        //         // Return false as the order status is invalid.
-        //         return false;
-        //     }
-        // }
+            // Return false as the order status is invalid.
+            return false;
+        }
 
         // Return true as the order status is valid.
         valid = true;

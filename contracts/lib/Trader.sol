@@ -1,12 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {Order, OrderComponents} from "./TraderStructs.sol";
+import {Order, OrderComponents, FulfillmentComponent, Execution} from "./TraderStructs.sol";
 import {CalldataStart, CalldataPointer} from "../helpers/PointerLibraries.sol";
 
 import {OrderCombiner} from "./OrderCombiner.sol";
 
-import {OrderParameters_counter_offset} from "./ConsiderationConstants.sol";
+import {
+    OrderParameters_counter_offset,
+    Offset_fulfillAvailableOrders_offerFulfillments,
+    Offset_fulfillAvailableOrders_considerationFulfillments
+} from "./ConsiderationConstants.sol";
 
 contract Trader is OrderCombiner {
     /**
@@ -61,6 +65,86 @@ contract Trader is OrderCombiner {
         Order[] calldata
     ) external returns (bool /* validated */) {
         return _validate(_toOrdersReturnType(_decodeOrders)(CalldataStart.pptr()));
+    }
+
+    /**
+     * @notice Attempt to fill a group of orders, each with an arbitrary number
+     *         of items for offer and consideration. Any order that is not
+     *         currently active, has already been fully filled, or has been
+     *         cancelled will be omitted. Remaining offer and consideration
+     *         items will then be aggregated where possible as indicated by the
+     *         supplied offer and consideration component arrays and aggregated
+     *         items will be transferred to the fulfiller or to each intended
+     *         recipient, respectively. Note that a failing item transfer or an
+     *         issue with order formatting will cause the entire batch to fail.
+     *         Note that this function does not support criteria-based orders or
+     *         partial filling of orders (though filling the remainder of a
+     *         partially-filled order is supported).
+     *
+     * @custom:param orders                    The orders to fulfill. Note that
+     *                                         both the offerer and the
+     *                                         fulfiller must first approve this
+     *                                         contract (or the corresponding
+     *                                         conduit if indicated) to transfer
+     *                                         any relevant tokens on their
+     *                                         behalf and that contracts must
+     *                                         implement `onERC1155Received` to
+     *                                         receive ERC1155 tokens as
+     *                                         consideration.
+     * @custom:param offerFulfillments         An array of FulfillmentComponent
+     *                                         arrays indicating which offer
+     *                                         items to attempt to aggregate
+     *                                         when preparing executions. Note
+     *                                         that any offer items not included
+     *                                         as part of a fulfillment will be
+     *                                         sent unaggregated to the caller.
+     * @custom:param considerationFulfillments An array of FulfillmentComponent
+     *                                         arrays indicating which
+     *                                         consideration items to attempt to
+     *                                         aggregate when preparing
+     *                                         executions.
+     * @param maximumFulfilled                 The maximum number of orders to
+     *                                         fulfill.
+     *
+     * @return availableOrders An array of booleans indicating if each order
+     *                         with an index corresponding to the index of the
+     *                         returned boolean was fulfillable or not.
+     * @return executions      An array of elements indicating the sequence of
+     *                         transfers performed as part of matching the given
+     *                         orders.
+     */
+    function fulfillAvailableOrders(
+        /**
+         * @custom:name orders
+         */
+        Order[] calldata,
+        /**
+         * @custom:name offerFulfillments
+         */
+        FulfillmentComponent[][] calldata,
+        /**
+         * @custom:name considerationFulfillments
+         */
+        FulfillmentComponent[][] calldata,
+        uint256 maximumFulfilled
+    )
+        external
+        payable
+        returns (bool[] memory /* availableOrders */, Execution[] memory /* executions */)
+    {
+        // Convert orders to "advanced" orders and fulfill all available orders.
+        return
+            _fulfillAvailableAdvancedOrders(
+                _toOrdersReturnType(_decodeOrders)(CalldataStart.pptr()), // Convert to advanced orders.
+                _toNestedFulfillmentComponentsReturnType(_decodeNestedFulfillmentComponents)(
+                    CalldataStart.pptr(Offset_fulfillAvailableOrders_offerFulfillments)
+                ),
+                _toNestedFulfillmentComponentsReturnType(_decodeNestedFulfillmentComponents)(
+                    CalldataStart.pptr(Offset_fulfillAvailableOrders_considerationFulfillments)
+                ),
+                msg.sender,
+                maximumFulfilled
+            );
     }
 
     /**
@@ -134,7 +218,7 @@ contract Trader is OrderCombiner {
      */
     function getOrderStatus(
         bytes32 orderHash
-    ) external view returns (bool isValidated, bool isCancelled) {
+    ) external view returns (bool isValidated, bool isCancelled, bool isFulFilled) {
         // Retrieve the order status using the order hash.
         return _getOrderStatus(orderHash);
     }

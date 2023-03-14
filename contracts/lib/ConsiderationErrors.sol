@@ -86,6 +86,8 @@ import {
     UnusedItemParameters_error_selector
 } from "./ConsiderationErrorConstants.sol";
 
+import {Side} from "./TraderEnums.sol";
+
 /**
  * @dev Reverts the current transaction with a "BadFraction" error message.
  */
@@ -405,25 +407,22 @@ function _revertMismatchedFulfillmentOfferAndConsiderationComponents(
  *             offer, 1 for consideration).
  *
  */
-// function _revertMissingFulfillmentComponentOnAggregation(Side side) pure {
-//     assembly {
-//         // Store left-padded selector with push4 (reduces bytecode),
-//         // mem[28:32] = selector
-//         mstore(0, MissingFulfillmentComponentOnAggregation_error_selector)
+function _revertMissingFulfillmentComponentOnAggregation(Side side) pure {
+    assembly {
+        // Store left-padded selector with push4 (reduces bytecode),
+        // mem[28:32] = selector
+        mstore(0, MissingFulfillmentComponentOnAggregation_error_selector)
 
-//         // Store argument.
-//         mstore(MissingFulfillmentComponentOnAggregation_error_side_ptr, side)
+        // Store argument.
+        mstore(MissingFulfillmentComponentOnAggregation_error_side_ptr, side)
 
-//         // revert(abi.encodeWithSignature(
-//         //     "MissingFulfillmentComponentOnAggregation(uint8)",
-//         //     side
-//         // ))
-//         revert(
-//             Error_selector_offset,
-//             MissingFulfillmentComponentOnAggregation_error_length
-//         )
-//     }
-// }
+        // revert(abi.encodeWithSignature(
+        //     "MissingFulfillmentComponentOnAggregation(uint8)",
+        //     side
+        // ))
+        revert(Error_selector_offset, MissingFulfillmentComponentOnAggregation_error_length)
+    }
+}
 
 /**
  * @dev Reverts execution with a "MissingOriginalConsiderationItems" error

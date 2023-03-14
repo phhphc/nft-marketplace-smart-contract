@@ -137,6 +137,47 @@ struct AdvancedOrder {
 struct OrderStatus {
     bool isValidated;
     bool isCancelled;
+    bool isFulFilled;
+}
+
+/**
+ * @dev A fulfillment is applied to a group of orders. It decrements a series of
+ *      offer and consideration items, then generates a single execution
+ *      element. A given fulfillment can be applied to as many offer and
+ *      consideration items as desired, but must contain at least one offer and
+ *      at least one consideration that match. The fulfillment must also remain
+ *      consistent on all key parameters across all offer items (same offerer,
+ *      token, type, tokenId, and conduit preference) as well as across all
+ *      consideration items (token, type, tokenId, and recipient).
+ */
+struct Fulfillment {
+    FulfillmentComponent[] offerComponents;
+    FulfillmentComponent[] considerationComponents;
+}
+
+/**
+ * @dev Each fulfillment component contains one index referencing a specific
+ *      order and another referencing a specific offer or consideration item.
+ */
+struct FulfillmentComponent {
+    uint256 orderIndex;
+    uint256 itemIndex;
+}
+
+/**
+ * @dev An execution is triggered once all consideration items have been zeroed
+ *      out. It sends the item in question from the offerer to the item's
+ *      recipient, optionally sourcing approvals from either this contract
+ *      directly or from the offerer's chosen conduit if one is specified. An
+ *      execution is not provided as an argument, but rather is derived via
+ *      orders, criteria resolvers, and fulfillments (where the total number of
+ *      executions will be less than or equal to the total number of indicated
+ *      fulfillments) and returned as part of `matchOrders`.
+ */
+struct Execution {
+    ReceivedItem item;
+    address offerer;
+    bytes32 conduitKey;
 }
 
 using StructPointers for OrderComponents global;
@@ -152,8 +193,9 @@ using StructPointers for AdvancedOrder global;
 using StructPointers for OrderStatus global;
 
 // using StructPointers for CriteriaResolver global;
-// using StructPointers for Fulfillment global;
-// using StructPointers for FulfillmentComponent global;
+using StructPointers for Fulfillment global;
+using StructPointers for FulfillmentComponent global;
+
 // using StructPointers for Execution global;
 // using StructPointers for ZoneParameters global;
 

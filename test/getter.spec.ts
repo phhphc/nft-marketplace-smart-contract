@@ -18,7 +18,7 @@ describe(`Getter tests (${MARKETPLACE_NAME} v${MARKETPLACE_VERSION})`, function 
         const { marketplace, domainData } = await loadFixture(marketplaceFixture);
 
         const name = await marketplace.name();
-        const { version, domainSeparator, conduitController: controller } = await marketplace.information();
+        const { version, domainSeparator } = await marketplace.information();
 
         const typehash = keccak256(
             toUtf8Bytes("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),

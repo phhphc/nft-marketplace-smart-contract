@@ -51,11 +51,7 @@ export const marketplaceFixture = async () => {
         timeFlag?: "NOT_STARTED" | "EXPIRED" | null,
         signer?: Wallet,
         zoneHash = constants.HashZero,
-        conduitKey = constants.HashZero,
         extraCheap = false,
-        useBulkSignature = false,
-        bulkSignatureIndex?: number,
-        bulkSignatureHeight?: number,
     ) => {
         const counter = await marketplace.getCounter(offerer.address);
 
@@ -72,7 +68,6 @@ export const marketplaceFixture = async () => {
             orderType,
             zoneHash,
             salt,
-            conduitKey,
             startTime,
             endTime,
         };

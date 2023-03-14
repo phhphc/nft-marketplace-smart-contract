@@ -4,6 +4,7 @@
   "semi": true,
   "singleQuote": false,
   "arrowParens": "avoid",
+  "endOfLine": "lf",
   "printWidth": 120,
   "overrides": [
     {
@@ -17,7 +18,7 @@
       "options": {
         "printWidth": 100,
         "tabWidth": 4,
-        "compiler": "0.8.9"
+        "compiler": "0.8.17"
       }
     }
   ]

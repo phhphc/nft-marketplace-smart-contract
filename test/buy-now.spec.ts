@@ -44,6 +44,13 @@ describe(`Buy now (${MARKETPLACE_NAME} v${MARKETPLACE_VERSION})`, function () {
                     .withArgs(orderHash, seller.address, zone.address, buyer.address, offer, consideration);
 
                 expect(await erc721.ownerOf(tokenId)).to.equal(buyer.address);
+
+                await erc721.connect(buyer).transferFrom(buyer.address, seller.address, tokenId);
+                expect(await erc721.ownerOf(tokenId)).to.equal(seller.address);
+
+                await expect(marketplace.connect(buyer).fulfillOrder(order, { value }))
+                    .to.revertedWithCustomError(marketplace, "OrderAlreadyFilled")
+                    .withArgs(orderHash);
             });
         });
     });

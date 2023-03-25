@@ -8,6 +8,7 @@ import { orderType as orderTypes } from "../test/eip721-types/order";
 import type { Contract, Wallet } from "ethers";
 import { Marketplace } from "../typechain-types";
 import { keccak256, recoverAddress } from "ethers/lib/utils";
+import axios from "axios";
 
 const getTestItem721 = (
     identifier: BigNumberish,
@@ -77,55 +78,6 @@ const createOrder = async (
         startTime,
         endTime,
     };
-
-    var x = {
-        parameters: {
-            offerer: "0xA85c072a57bEfE1A907356673137B77ec9b5C985",
-            zone: "0xA85c072a57bEfE1A907356673137B77ec9b5C985",
-            offer: [
-                {
-                    itemType: 2,
-                    token: "0xC9C7E04C41a01C9072C2d074e1258a1f56d0603a",
-                    identifier: "0x13",
-                    startAmount: "0x01",
-                    endAmount: "0x01",
-                },
-            ],
-            consideration: [
-                {
-                    itemType: 0,
-                    token: "0x0000000000000000000000000000000000000000",
-                    identifier: "0x00",
-                    startAmount: "0x0de0b6b3a7640000",
-                    endAmount: "0x0de0b6b3a7640000",
-                    recipient: "0xA85c072a57bEfE1A907356673137B77ec9b5C985",
-                },
-            ],
-            orderType: "0x00",
-            startTime: "0x00",
-            endTime: "0xff00000000000000000000000000",
-            zoneHash: "0x0000000000000000000000000000000000000000000000000000000000000000",
-            salt: "0xc726f21637e102c3b38f6611f185567da877b11abce19ea28000000000000000",
-            totalOriginalConsiderationItems: 1,
-        },
-        signature:
-            "0xa82ae4d6346739b0b7e15489757aaa9be5276eeb0bb23f7c08a465f9e22d10f13da08ecce19d7612cd509778645f101ac16c760e5e73a96dd6018b1643c04c4c1b",
-    };
-
-    var counter2 = await marketplace.getCounter(x.parameters.offerer);
-    const orderComponents2 = {
-        ...x.parameters,
-        counter: counter2,
-    };
-    var orderHash2 = await marketplace.getOrderHash(orderComponents2);
-
-    var { domainSeparator: dsp } = await marketplace.information();
-    var digest2 = keccak256(`0x1901${dsp.slice(2)}${orderHash2.slice(2)}`);
-    const recoveredAddress2 = recoverAddress(digest2, x.signature);
-    console.log(recoveredAddress2, x.parameters.offerer);
-    if (recoveredAddress2 !== x.parameters.offerer) {
-        throw "wrong signature 2";
-    }
 
     const orderComponents = {
         ...orderParameters,
@@ -211,7 +163,7 @@ async function main() {
     const offer = [getTestItem721(nftId, myToken.address)];
     const consideration = [getItemETH(parseEther("1"), parseEther("1"), owner.address)];
 
-    const { order, value } = await createOrder(
+    const { order, value, orderHash, orderComponents } = await createOrder(
         marketplace,
         seller,
         zone.address,
@@ -220,12 +172,45 @@ async function main() {
         0, // FULL_OPEN
     );
 
-    console.log(JSON.stringify(order, null, 2));
+    // var data =
+    // {
+    //     "order_hash": orderHash,
+    //     "offerer": order.parameters.offerer,
+    //     "zone": order.parameters.zone,
+    //     "offer": order.parameters.offer.map(o => ({
+    //         "item_type": o.itemType,
+    //         "token": o.token,
+    //         "identifier": o.identifier._hex,
+    //         "start_amount": o.startAmount._hex,
+    //         "end_amount": o.endAmount._hex
+    //     })),
+    //     "consideration": order.parameters.consideration.map(c => ({
+    //         "item_type": c.itemType,
+    //         "token": c.token,
+    //         "identifier": c.identifier._hex,
+    //         "start_amount": c.startAmount._hex,
+    //         "end_amount": c.endAmount._hex,
+    //         "recipient": c.recipient
+    //     })),
+    //     "order_type": order.parameters.orderType,
+    //     "zone_hash": order.parameters.zoneHash,
+    //     "salt": order.parameters.salt,
+    //     "start_time": toBN(order.parameters.startTime)._hex,
+    //     "end_time":  toBN(order.parameters.endTime)._hex,
+    //     "signature": order.signature
+    // };
+    // await axios.post("http://165.232.160.106:9090/api/v0.1/order", data)
+    // await axios.post("http://localhost:9099/api/v0.1/order", data)
 
-    // const tx = await marketplace.connect(buyer).fulfillOrder(order, { value });
-    // await tx.wait();
+    var dd = JSON.stringify(order, null, 4);
+    console.log(dd);
 
-    // console.log(tx.blockNumber, tx.hash)
+    // console.log(await myToken.name());
+
+    const tx = await marketplace.connect(buyer).fulfillOrder(order, { value });
+    await tx.wait();
+
+    console.log(tx.blockNumber, tx.hash, orderHash);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

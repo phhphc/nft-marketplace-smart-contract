@@ -30,7 +30,11 @@ contract Marketplace is Trader {
         return "Marketplace";
     }
 
-    // fallback() external payable {
-    //     revert("error");
-    // }
+    fallback() external payable {
+        revert("error");
+    }
+
+    receive() external payable {
+        revert("error");
+    }
 }

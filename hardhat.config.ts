@@ -3,6 +3,7 @@ import { config as dotEnvConfig } from "dotenv";
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import "hardhat-abi-exporter";
+import "@solidstate/hardhat-bytecode-exporter";
 
 dotEnvConfig();
 
@@ -33,6 +34,16 @@ const config: HardhatUserConfig = {
             .filter(x => x.match(/^.+\.sol$/))
             .map(x => x.replace(/\.sol$/, ""))
             .concat("IERC721Metadata$"),
+    },
+    bytecodeExporter: {
+        path: "./bytecode",
+        runOnCompile: true,
+        clear: true,
+        flat: true,
+        only: fs
+            .readdirSync("contracts")
+            .filter(x => x.match(/^.+\.sol$/))
+            .map(x => x.replace(/\.sol$/, "")),
     },
 };
 

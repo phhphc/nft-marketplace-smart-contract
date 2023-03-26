@@ -143,22 +143,24 @@ async function main() {
     const { provider } = ethers;
     const { parseEther } = ethers.utils;
 
-    const seller = new ethers.Wallet(randomHex(32), provider);
-    const buyer = owner;
-    const zone = new ethers.Wallet(randomHex(32), provider);
+    const seller = new ethers.Wallet(process.env.SELLER_PRIVATE_KEY as string, provider);
+    const buyer = new ethers.Wallet(process.env.BUYER_PRIVATE_KEY as string, provider);
+    const zone = new ethers.Wallet(process.env.ZONE_PRIVATE_KEY as string, provider);
 
-    for (const wallet of [seller]) {
-        await owner.sendTransaction({
-            to: wallet.address,
-            value: parseEther("0.1"),
-        });
-    }
+    // console.log(await myToken.ownerOf("22596384042339072632483211526420607445"));
+    // console.log(await marketplace.getOrderStatus("0x10be3b95af8238e12b7feae365746aef6992b226eeecb145bf7170146344a4a5"))
+    // return
 
     await myToken.connect(seller).setApprovalForAll(marketplace.address, true);
 
     const nftId = randomBN();
     const uri = "url://" + nftId;
-    await myToken.mint(seller.address, nftId, uri);
+    // await myToken.mint(seller.address, nftId, uri);
+    await myToken.mint("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", nftId, uri);
+
+    console.log(nftId);
+
+    return;
 
     const offer = [getTestItem721(nftId, myToken.address)];
     const consideration = [getItemETH(parseEther("1"), parseEther("1"), owner.address)];
@@ -172,34 +174,33 @@ async function main() {
         0, // FULL_OPEN
     );
 
-    // var data =
-    // {
-    //     "order_hash": orderHash,
-    //     "offerer": order.parameters.offerer,
-    //     "zone": order.parameters.zone,
-    //     "offer": order.parameters.offer.map(o => ({
-    //         "item_type": o.itemType,
-    //         "token": o.token,
-    //         "identifier": o.identifier._hex,
-    //         "start_amount": o.startAmount._hex,
-    //         "end_amount": o.endAmount._hex
-    //     })),
-    //     "consideration": order.parameters.consideration.map(c => ({
-    //         "item_type": c.itemType,
-    //         "token": c.token,
-    //         "identifier": c.identifier._hex,
-    //         "start_amount": c.startAmount._hex,
-    //         "end_amount": c.endAmount._hex,
-    //         "recipient": c.recipient
-    //     })),
-    //     "order_type": order.parameters.orderType,
-    //     "zone_hash": order.parameters.zoneHash,
-    //     "salt": order.parameters.salt,
-    //     "start_time": toBN(order.parameters.startTime)._hex,
-    //     "end_time":  toBN(order.parameters.endTime)._hex,
-    //     "signature": order.signature
-    // };
-    // await axios.post("http://165.232.160.106:9090/api/v0.1/order", data)
+    var data = {
+        order_hash: orderHash,
+        offerer: order.parameters.offerer,
+        zone: order.parameters.zone,
+        offer: order.parameters.offer.map(o => ({
+            item_type: o.itemType,
+            token: o.token,
+            identifier: o.identifier._hex,
+            start_amount: o.startAmount._hex,
+            end_amount: o.endAmount._hex,
+        })),
+        consideration: order.parameters.consideration.map(c => ({
+            item_type: c.itemType,
+            token: c.token,
+            identifier: c.identifier._hex,
+            start_amount: c.startAmount._hex,
+            end_amount: c.endAmount._hex,
+            recipient: c.recipient,
+        })),
+        order_type: order.parameters.orderType,
+        zone_hash: order.parameters.zoneHash,
+        salt: order.parameters.salt,
+        start_time: toBN(order.parameters.startTime)._hex,
+        end_time: toBN(order.parameters.endTime)._hex,
+        signature: order.signature,
+    };
+    await axios.post("http://165.232.160.106:9090/api/v0.1/order", data);
     // await axios.post("http://localhost:9099/api/v0.1/order", data)
 
     var dd = JSON.stringify(order, null, 4);
@@ -210,7 +211,11 @@ async function main() {
     const tx = await marketplace.connect(buyer).fulfillOrder(order, { value });
     await tx.wait();
 
-    console.log(tx.blockNumber, tx.hash, orderHash);
+    // console.log(tx)
+    // console.log(tx.blockNumber, tx.hash, orderHash);
+    console.log("order_hash", orderHash);
+
+    console.log(await marketplace.getOrderStatus(orderHash));
 }
 
 // We recommend this pattern to be able to use async/await everywhere

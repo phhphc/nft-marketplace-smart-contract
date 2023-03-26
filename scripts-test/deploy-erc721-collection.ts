@@ -10,16 +10,16 @@ async function main() {
     await erc721Collection.deployed();
     console.log(`MyToken deployed to ${erc721Collection.address}`);
 
-    console.log(await erc721Collection.name());
-    console.log(await erc721Collection.symbol());
-    console.log(await erc721Collection.contractURI());
+    // console.log(await erc721Collection.name());
+    // console.log(await erc721Collection.symbol());
+    // console.log(await erc721Collection.contractURI());
 
-    const nftId = randomBN();
-    const uri = "url://" + nftId;
-    await erc721Collection.mint(owner.address, nftId, uri);
+    // const nftId = randomBN();
+    // const uri = "url://" + nftId;
+    // await erc721Collection.mint(owner.address, nftId, uri);
 
-    console.log(nftId);
-    console.log(await erc721Collection.ownerOf(nftId));
+    // console.log(nftId);
+    // console.log(await erc721Collection.ownerOf(nftId));
 }
 
 // We recommend this pattern to be able to use async/await everywhere

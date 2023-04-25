@@ -12,6 +12,9 @@ const GANACHE_PRIVATE_KEY = process.env.GANACHE_PRIVATE_KEY || "";
 const DEVNET_URL = process.env.DEVNET_URL || "";
 const DEVNET_PRIVATE_KEY = process.env.DEVNET_PRIVATE_KEY || "";
 
+const SEPOLIA_URL = process.env.SEPOLIA_URL || "";
+const SEPOLIA_PRIVATE_KEY = process.env.SEPOLIA_PRIVATE_KEY || "";
+
 const config: HardhatUserConfig = {
     solidity: "0.8.17",
     networks: {
@@ -22,6 +25,10 @@ const config: HardhatUserConfig = {
         devnet: {
             url: DEVNET_URL,
             accounts: [DEVNET_PRIVATE_KEY],
+        },
+        sepolia: {
+            url: SEPOLIA_URL,
+            accounts: [SEPOLIA_PRIVATE_KEY],
         },
     },
     abiExporter: {

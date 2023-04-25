@@ -130,15 +130,13 @@ const createOrder = async (
 async function main() {
     const [owner] = await ethers.getSigners();
 
-    console.log(await owner.getBalance());
-
     const Marketplace = await ethers.getContractFactory("Marketplace");
     const marketplace = await Marketplace.attach(process.env.MKP_ADDR as string);
     console.log(`Marketplace attached from ${marketplace.address}`);
 
-    const MyToken = await ethers.getContractFactory("MyToken");
+    const MyToken = await ethers.getContractFactory("Erc721Collection");
     const myToken = await MyToken.attach(process.env.NFT_ADDR as string);
-    console.log(`Mytoken attached from ${myToken.address}`);
+    console.log(`Erc721Collection attached from ${myToken.address}`);
 
     const { provider } = ethers;
     const { parseEther } = ethers.utils;
@@ -147,23 +145,31 @@ async function main() {
     const buyer = new ethers.Wallet(process.env.BUYER_PRIVATE_KEY as string, provider);
     const zone = new ethers.Wallet(process.env.ZONE_PRIVATE_KEY as string, provider);
 
-    // console.log(await myToken.ownerOf("22596384042339072632483211526420607445"));
-    // console.log(await marketplace.getOrderStatus("0x10be3b95af8238e12b7feae365746aef6992b226eeecb145bf7170146344a4a5"))
-    // return
+    // console.log(owner.address, await owner.getBalance());
+    // console.log(seller.address, await seller.getBalance());
+    // console.log(buyer.address, await buyer.getBalance());
+    // console.log(zone.address, await zone.getBalance());
 
-    await myToken.connect(seller).setApprovalForAll(marketplace.address, true);
+    // await myToken.connect(seller).setApprovalForAll(marketplace.address, true);
 
-    const nftId = randomBN();
-    const uri = "url://" + nftId;
-    // await myToken.mint(seller.address, nftId, uri);
-    await myToken.mint("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", nftId, uri);
+    // const nftId = randomBN();
+    // const uri = `https://gateway.pinata.cloud/ipfs/QmYTUyhsTWGkzGMDrgTJmDnzcuYEwejzPR6o7GVZ3LcmRv/${(20)}.json`;
+    // var tx = await myToken.mint(seller.address, nftId, uri);
+    // await tx.wait()
+    // await myToken.mint("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", nftId, uri);
 
-    console.log(nftId);
-
+    const nftId = "325898933002471878020881149103489239933";
+    console.log(nftId, await myToken.ownerOf(nftId));
+    var tx = await myToken
+        .connect(seller)
+        ["safeTransferFrom(address,address,uint256)"](seller.address, buyer.address, nftId);
+    // var tx = await myToken.connect(buyer)['safeTransferFrom(address,address,uint256)'](buyer.address, seller.address, nftId)
+    await tx.wait();
     return;
 
     const offer = [getTestItem721(nftId, myToken.address)];
-    const consideration = [getItemETH(parseEther("1"), parseEther("1"), owner.address)];
+    // const consideration = [getItemETH(parseEther("1"), parseEther("1"), owner.address)];
+    const consideration = [getItemETH(parseEther("1"), parseEther("1"), buyer.address)];
 
     const { order, value, orderHash, orderComponents } = await createOrder(
         marketplace,
@@ -200,7 +206,7 @@ async function main() {
         end_time: toBN(order.parameters.endTime)._hex,
         signature: order.signature,
     };
-    await axios.post("http://165.232.160.106:9090/api/v0.1/order", data);
+    // await axios.post("http://165.232.160.106:9090/api/v0.1/order", data);
     // await axios.post("http://localhost:9099/api/v0.1/order", data)
 
     var dd = JSON.stringify(order, null, 4);
@@ -208,7 +214,8 @@ async function main() {
 
     // console.log(await myToken.name());
 
-    const tx = await marketplace.connect(buyer).fulfillOrder(order, { value });
+    console.log(value);
+    var tx = await marketplace.connect(buyer).fulfillOrder(order, { value });
     await tx.wait();
 
     // console.log(tx)

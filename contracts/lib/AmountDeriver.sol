@@ -1,23 +1,7 @@
-// SPDX-License-Identifier: MIT
-pragma solidity 0.8.17;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.9;
 
-import {AmountDerivationErrors} from "../interfaces/AmountDerivationErrors.sol";
-
-import {
-    Error_selector_offset,
-    InexactFraction_error_length,
-    InexactFraction_error_selector
-} from "./ConsiderationErrorConstants.sol";
-
-/**
- * @title AmountDeriver
- * @author 0age
- * @notice AmountDeriver contains view and pure functions related to deriving
- *         item amounts based on partial fill quantity and on linear
- *         interpolation based on current time when the start amount and end
- *         amount differ.
- */
-contract AmountDeriver is AmountDerivationErrors {
+contract AmountDeriver {
     /**
      * @dev Internal view function to derive the current amount of a given item
      *      based on the current price, the starting price, and the ending
@@ -90,55 +74,6 @@ contract AmountDeriver is AmountDerivationErrors {
     }
 
     /**
-     * @dev Internal pure function to return a fraction of a given value and to
-     *      ensure the resultant value does not have any fractional component.
-     *      Note that this function assumes that zero will never be supplied as
-     *      the denominator parameter; invalid / undefined behavior will result
-     *      should a denominator of zero be provided.
-     *
-     * @param numerator   A value indicating the portion of the order that
-     *                    should be filled.
-     * @param denominator A value indicating the total size of the order. Note
-     *                    that this value cannot be equal to zero.
-     * @param value       The value for which to compute the fraction.
-     *
-     * @return newValue The value after applying the fraction.
-     */
-    function _getFraction(
-        uint256 numerator,
-        uint256 denominator,
-        uint256 value
-    ) internal pure returns (uint256 newValue) {
-        // Return value early in cases where the fraction resolves to 1.
-        if (numerator == denominator) {
-            return value;
-        }
-
-        // Ensure fraction can be applied to the value with no remainder. Note
-        // that the denominator cannot be zero.
-        assembly {
-            // Ensure new value contains no remainder via mulmod operator.
-            // Credit to @hrkrshnn + @axic for proposing this optimal solution.
-            if mulmod(value, numerator, denominator) {
-                // Store left-padded selector with push4, mem[28:32] = selector
-                mstore(0, InexactFraction_error_selector)
-
-                // revert(abi.encodeWithSignature("InexactFraction()"))
-                revert(Error_selector_offset, InexactFraction_error_length)
-            }
-        }
-
-        // Multiply the numerator by the value and ensure no overflow occurs.
-        uint256 valueTimesNumerator = value * numerator;
-
-        // Divide and check for remainder. Note that denominator cannot be zero.
-        assembly {
-            // Perform division without zero check.
-            newValue := div(valueTimesNumerator, denominator)
-        }
-    }
-
-    /**
      * @dev Internal view function to apply a fraction to a consideration
      * or offer item.
      *
@@ -154,8 +89,6 @@ contract AmountDeriver is AmountDerivationErrors {
     function _applyFraction(
         uint256 startAmount,
         uint256 endAmount,
-        // uint256 numerator,
-        // uint256 denominator,
         uint256 startTime,
         uint256 endTime,
         bool roundUp

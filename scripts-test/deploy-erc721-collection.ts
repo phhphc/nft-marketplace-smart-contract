@@ -1,10 +1,6 @@
 import { ethers } from "hardhat";
-import { randomBN } from "../test/utils/encoding";
 
 async function main() {
-    const [owner] = await ethers.getSigners();
-    console.log(await ethers.provider.getBalance(owner.address), owner.address);
-
     const Erc721Collection = await ethers.getContractFactory("Erc721Collection");
     const erc721Collection = await Erc721Collection.deploy(
         "Penguins",
@@ -13,18 +9,7 @@ async function main() {
     );
 
     await erc721Collection.deployed();
-    console.log(`MyToken deployed to ${erc721Collection.address}`);
-
-    // console.log(await erc721Collection.name());
-    // console.log(await erc721Collection.symbol());
-    // console.log(await erc721Collection.contractURI());
-
-    // const nftId = randomBN();
-    // const uri = "url://" + nftId;
-    // await erc721Collection.mint(owner.address, nftId, uri);
-
-    // console.log(nftId);
-    // console.log(await erc721Collection.ownerOf(nftId));
+    console.log(`Erc721Collection deployed to ${erc721Collection.address}`);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

@@ -5,8 +5,8 @@ import type { BigNumberish } from "ethers";
 import { getOfferOrConsiderationItem, randomBN, toBN } from "../encoding";
 
 export const erc721Fixture = async () => {
-    const Erc721 = await ethers.getContractFactory("MyToken");
-    const erc721 = await Erc721.deploy();
+    const Erc721 = await ethers.getContractFactory("Erc721Collection");
+    const erc721 = await Erc721.deploy("Mytoken", "MTK", "https://url.com");
     await erc721.deployed();
 
     const mint721 = async (owner: Wallet | Contract, id?: BigNumberish) => {

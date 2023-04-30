@@ -1,2 +1,2 @@
-export const MARKETPLACE_NAME = "Marketplace";
-export const MARKETPLACE_VERSION = "1.2";
+export const MARKETPLACE_NAME = "Lover";
+export const MARKETPLACE_VERSION = "1.0";

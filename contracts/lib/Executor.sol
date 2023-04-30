@@ -1,40 +1,21 @@
-// SPDX-License-Identifier: MIT
-pragma solidity 0.8.17;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.9;
 
-// import { ConduitInterface } from "../interfaces/ConduitInterface.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import {IERC1155} from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 
-// import { ConduitItemType } from "../conduit/lib/ConduitEnums.sol";
-
-import {ItemType} from "./TraderEnums.sol";
-
-import {ReceivedItem} from "./TraderStructs.sol";
-
-import {Verifiers} from "./Verifiers.sol";
-
-import {TokenTransferrer} from "./TokenTransferrer.sol";
-
+import {ReceivedItem} from "./MarketplaceStruct.sol";
+import {ItemType} from "./MarketplaceEnum.sol";
 import {
-    Error_selector_offset,
-    NativeTokenTransferGenericFailure_error_account_ptr,
-    NativeTokenTransferGenericFailure_error_amount_ptr,
-    NativeTokenTransferGenericFailure_error_length,
-    NativeTokenTransferGenericFailure_error_selector
-} from "./ConsiderationErrorConstants.sol";
+    _revertUnusedItemParameters,
+    _revertMissingItemAmount,
+    _revertTokenTransferGenericFailure,
+    _revertInvalidERC721TransferAmount
+} from "./MarketplaceErrors.sol";
+import "hardhat/console.sol";
 
-import {
-    _revertInvalidCallToConduit,
-    _revertInvalidConduit,
-    _revertInvalidERC721TransferAmount,
-    _revertUnusedItemParameters
-} from "./ConsiderationErrors.sol";
-
-/**
- * @title Executor
- * @author 0age
- * @notice Executor contains functions related to processing executions (i.e.
- *         transferring items, either directly or via conduits).
- */
-contract Executor is Verifiers, TokenTransferrer {
+contract Executor {
     /**
      * @dev Internal function to transfer a given item, either directly or via
      *      a corresponding conduit.
@@ -44,7 +25,6 @@ contract Executor is Verifiers, TokenTransferrer {
      * @param from        The account supplying the item.
      */
     function _transfer(ReceivedItem memory item, address from) internal {
-        // If the item type indicates Ether or a native token...
         if (item.itemType == ItemType.NATIVE) {
             // Ensure neither the token nor the identifier parameters are set.
             if ((uint160(item.token) | item.identifier) != 0) {
@@ -71,64 +51,30 @@ contract Executor is Verifiers, TokenTransferrer {
     }
 
     /**
-     * @dev Internal function to transfer Ether or other native tokens to a
-     *      given recipient.
+     * @dev Internal function to transfer ERC1155 tokens from a given originator
+     *      to a given recipient. Sufficient approvals must be set, either on
+     *      the respective conduit or on this contract itself.
      *
-     * @param to     The recipient of the transfer.
-     * @param amount The amount to transfer.
-     */
-    function _transferNativeTokens(address payable to, uint256 amount) internal {
-        // Ensure that the supplied amount is non-zero.
-        _assertNonZeroAmount(amount);
-
-        // Declare a variable indicating whether the call was successful or not.
-        bool success;
-
-        assembly {
-            // Transfer the native token and store if it succeeded or not.
-            success := call(gas(), to, amount, 0, 0, 0, 0)
-        }
-
-        // If the call fails...
-        if (!success) {
-            // Revert and pass the revert reason along if one was returned.
-            _revertWithReasonIfOneIsReturned();
-
-            // Otherwise, revert with a generic error message.
-            assembly {
-                // Store left-padded selector with push4, mem[28:32] = selector
-                mstore(0, NativeTokenTransferGenericFailure_error_selector)
-
-                // Write `to` and `amount` arguments.
-                mstore(NativeTokenTransferGenericFailure_error_account_ptr, to)
-                mstore(NativeTokenTransferGenericFailure_error_amount_ptr, amount)
-
-                // revert(abi.encodeWithSignature(
-                //     "NativeTokenTransferGenericFailure(address,uint256)",
-                //     to,
-                //     amount
-                // ))
-                revert(Error_selector_offset, NativeTokenTransferGenericFailure_error_length)
-            }
-        }
-    }
-
-    /**
-     * @dev Internal function to transfer ERC20 tokens from a given originator
-     *      to a given recipient using a given conduit if applicable. Sufficient
-     *      approvals must be set on this contract or on a respective conduit.
-     *
-     * @param token       The ERC20 token to transfer.
+     * @param token       The ERC1155 token to transfer.
      * @param from        The originator of the transfer.
      * @param to          The recipient of the transfer.
+     * @param identifier  The id to transfer.
      * @param amount      The amount to transfer.
      */
-    function _transferERC20(address token, address from, address to, uint256 amount) internal {
+    function _transferERC1155(
+        address token,
+        address from,
+        address to,
+        uint256 identifier,
+        uint256 amount
+    ) internal {
         // Ensure that the supplied amount is non-zero.
-        _assertNonZeroAmount(amount);
+        if (amount == 0) {
+            _revertMissingItemAmount();
+        }
 
-        // Perform the token transfer directly.
-        _performERC20Transfer(token, from, to, amount);
+        // Perform transfer via the token contract directly.
+        IERC1155(token).safeTransferFrom(from, to, identifier, amount, new bytes(0));
     }
 
     /**
@@ -155,31 +101,41 @@ contract Executor is Verifiers, TokenTransferrer {
         }
 
         // Perform transfer via the token contract directly.
-        _performERC721Transfer(token, from, to, identifier);
+        IERC721(token).safeTransferFrom(from, to, identifier);
     }
 
     /**
-     * @dev Internal function to transfer ERC1155 tokens from a given originator
-     *      to a given recipient. Sufficient approvals must be set, either on
-     *      the respective conduit or on this contract itself.
+     * @dev Internal function to transfer ERC20 tokens from a given originator
+     *      to a given recipient using a given conduit if applicable. Sufficient
+     *      approvals must be set on this contract or on a respective conduit.
      *
-     * @param token       The ERC1155 token to transfer.
+     * @param token       The ERC20 token to transfer.
      * @param from        The originator of the transfer.
      * @param to          The recipient of the transfer.
-     * @param identifier  The id to transfer.
      * @param amount      The amount to transfer.
      */
-    function _transferERC1155(
-        address token,
-        address from,
-        address to,
-        uint256 identifier,
-        uint256 amount
-    ) internal {
-        // Ensure that the supplied amount is non-zero.
-        _assertNonZeroAmount(amount);
+    function _transferERC20(address token, address from, address to, uint256 amount) internal {
+        if (amount == 0) {
+            _revertMissingItemAmount();
+        }
+        bool success = IERC20(token).transferFrom(from, to, amount);
+        if (!success) {
+            _revertTokenTransferGenericFailure(token, from, to, 0, amount);
+        }
+    }
 
-        // Perform transfer via the token contract directly.
-        _performERC1155Transfer(token, from, to, identifier, amount);
+    /**
+     * @dev Internal function to transfer Ether or other native tokens to a
+     *      given recipient.
+     *
+     * @param to     The recipient of the transfer.
+     * @param amount The amount to transfer.
+     */
+    function _transferNativeTokens(address payable to, uint256 amount) internal {
+        if (amount == 0) {
+            _revertMissingItemAmount();
+        }
+
+        to.transfer(amount);
     }
 }

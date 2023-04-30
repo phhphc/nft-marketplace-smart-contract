@@ -44,13 +44,10 @@ export const marketplaceFixture = async () => {
 
     const createOrder = async (
         offerer: Wallet | Contract,
-        zone: Wallet | undefined | string = undefined,
         offer: OfferItem[],
         consideration: ConsiderationItem[],
-        orderType: number,
         timeFlag?: "NOT_STARTED" | "EXPIRED" | null,
         signer?: Wallet,
-        zoneHash = constants.HashZero,
         extraCheap = false,
     ) => {
         const counter = await marketplace.getCounter(offerer.address);
@@ -61,12 +58,8 @@ export const marketplaceFixture = async () => {
 
         const orderParameters = {
             offerer: offerer.address,
-            zone: !extraCheap ? (zone as Wallet).address ?? zone : constants.AddressZero,
             offer,
             consideration,
-            totalOriginalConsiderationItems: consideration.length,
-            orderType,
-            zoneHash,
             salt,
             startTime,
             endTime,
@@ -94,28 +87,6 @@ export const marketplaceFixture = async () => {
             parameters: orderParameters,
             signature: !extraCheap ? flatSig : convertSignatureToEIP2098(flatSig),
         };
-
-        // if (useBulkSignature) {
-        //     order.signature = await signBulkOrder(
-        //         [orderComponents],
-        //         signer ?? offerer,
-        //         bulkSignatureIndex,
-        //         bulkSignatureHeight,
-        //         extraCheap
-        //     );
-
-        //     // Verify bulk signature length
-        //     expect(
-        //         order.signature.slice(2).length / 2,
-        //         "bulk signature length should be valid (98 < length < 837)"
-        //     )
-        //         .to.be.gt(98)
-        //         .and.lt(837);
-        //     expect(
-        //         (order.signature.slice(2).length / 2 - 67) % 32,
-        //         "bulk signature length should be valid ((length - 67) % 32 < 2)"
-        //     ).to.be.lt(2);
-        // }
 
         // How much ether (at most) needs to be supplied when fulfilling the order
         const value = offer

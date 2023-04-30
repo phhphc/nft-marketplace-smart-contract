@@ -1,35 +1,10 @@
-// SPDX-License-Identifier: MIT
-pragma solidity 0.8.17;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.9;
 
-import {ConsiderationEventsAndErrors} from "../interfaces/ConsiderationEventsAndErrors.sol";
+import {toByte32} from "../utils/ByteUtil.sol";
+import "hardhat/console.sol";
 
-import {
-    EIP712_domainData_chainId_offset,
-    EIP712_domainData_nameHash_offset,
-    EIP712_domainData_size,
-    EIP712_domainData_verifyingContract_offset,
-    EIP712_domainData_versionHash_offset,
-    FreeMemoryPointerSlot,
-    NameLengthPtr,
-    NameWithLength,
-    OneWord,
-    OneWordShift,
-    Slot0x80,
-    ThreeWords,
-    ZeroSlot
-} from "./ConsiderationConstants.sol";
-
-import {ConsiderationDecoder} from "./ConsiderationDecoder.sol";
-// import { ConsiderationEncoder } from "./ConsiderationEncoder.sol";
-
-import {TypehashDirectory} from "./TypehashDirectory.sol";
-
-/**
- * @title ConsiderationBase
- * @author 0age
- * @notice ConsiderationBase contains immutable constants and constructor logic.
- */
-contract ConsiderationBase is ConsiderationDecoder, ConsiderationEventsAndErrors {
+contract MarketplaceBase {
     // Precompute hashes, original chainId, and domain separator on deployment.
     bytes32 internal immutable _NAME_HASH;
     bytes32 internal immutable _VERSION_HASH;
@@ -40,13 +15,6 @@ contract ConsiderationBase is ConsiderationDecoder, ConsiderationEventsAndErrors
     uint256 internal immutable _CHAIN_ID;
     bytes32 internal immutable _DOMAIN_SEPARATOR;
 
-    // BulkOrder typehash storage
-    TypehashDirectory internal immutable _BULK_ORDER_TYPEHASH_DIRECTORY;
-
-    /**
-     * @dev Derive and set hashes, reference chainId, and associated domain
-     *      separator during deployment.
-     */
     constructor() {
         // Derive name and version hashes alongside required EIP-712 typehashes.
         (
@@ -57,8 +25,6 @@ contract ConsiderationBase is ConsiderationDecoder, ConsiderationEventsAndErrors
             _CONSIDERATION_ITEM_TYPEHASH,
             _ORDER_TYPEHASH
         ) = _deriveTypehashes();
-
-        _BULK_ORDER_TYPEHASH_DIRECTORY = new TypehashDirectory();
 
         // Store the current chainId and derive the current domain separator.
         _CHAIN_ID = block.chainid;
@@ -71,41 +37,15 @@ contract ConsiderationBase is ConsiderationDecoder, ConsiderationEventsAndErrors
      * @return domainSeparator The derived domain separator.
      */
     function _deriveDomainSeparator() internal view returns (bytes32 domainSeparator) {
-        bytes32 typehash = _EIP_712_DOMAIN_TYPEHASH;
-        bytes32 nameHash = _NAME_HASH;
-        bytes32 versionHash = _VERSION_HASH;
+        bytes memory localBytes = bytes.concat(
+            _EIP_712_DOMAIN_TYPEHASH,
+            _NAME_HASH,
+            _VERSION_HASH,
+            bytes32(_CHAIN_ID),
+            toByte32(address(this))
+        );
 
-        // Leverage scratch space and other memory to perform an efficient hash.
-        assembly {
-            // Retrieve the free memory pointer; it will be replaced afterwards.
-            let freeMemoryPointer := mload(FreeMemoryPointerSlot)
-
-            // Retrieve value at 0x80; it will also be replaced afterwards.
-            let slot0x80 := mload(Slot0x80)
-
-            // Place typehash, name hash, and version hash at start of memory.
-            mstore(0, typehash)
-            mstore(EIP712_domainData_nameHash_offset, nameHash)
-            mstore(EIP712_domainData_versionHash_offset, versionHash)
-
-            // Place chainId in the next memory location.
-            mstore(EIP712_domainData_chainId_offset, chainid())
-
-            // Place the address of this contract in the next memory location.
-            mstore(EIP712_domainData_verifyingContract_offset, address())
-
-            // Hash relevant region of memory to derive the domain separator.
-            domainSeparator := keccak256(0, EIP712_domainData_size)
-
-            // Restore the free memory pointer.
-            mstore(FreeMemoryPointerSlot, freeMemoryPointer)
-
-            // Restore the zero slot to zero.
-            mstore(ZeroSlot, 0)
-
-            // Restore the value at 0x80.
-            mstore(Slot0x80, slot0x80)
-        }
+        domainSeparator = keccak256(localBytes);
     }
 
     /**
@@ -115,34 +55,17 @@ contract ConsiderationBase is ConsiderationDecoder, ConsiderationEventsAndErrors
      * @return The name of this contract.
      */
     function _name() internal pure virtual returns (string memory) {
-        // Return the name of the contract.
-        assembly {
-            // First element is the offset for the returned string. Offset the
-            // value in memory by one word so that the free memory pointer will
-            // be overwritten by the next write.
-            mstore(OneWord, OneWord)
-
-            // Name is right padded, so it touches the length which is left
-            // padded. This enables writing both values at once. The free memory
-            // pointer will be overwritten in the process.
-            mstore(NameLengthPtr, NameWithLength)
-
-            // Standard ABI encoding pads returned data to the nearest word. Use
-            // the already empty zero slot memory region for this purpose and
-            // return the final name string, offset by the original single word.
-            return(OneWord, ThreeWords)
-        }
+        return "Marketplace";
     }
 
     /**
-     * @dev Internal pure function to retrieve the default name of this contract
-     *      as a string that can be used internally.
+     * @dev Internal pure function to retrieve the version of this
+     *      contract and return.
      *
-     * @return The name of this contract.
+     * @return The version of this contract.
      */
-    function _nameString() internal pure virtual returns (string memory) {
-        // Return the name of the contract.
-        return "Consideration";
+    function _version() internal pure returns (string memory) {
+        return "1.0";
     }
 
     /**
@@ -172,10 +95,10 @@ contract ConsiderationBase is ConsiderationDecoder, ConsiderationEventsAndErrors
         )
     {
         // Derive hash of the name of the contract.
-        nameHash = keccak256(bytes(_nameString()));
+        nameHash = keccak256(bytes(_name()));
 
         // Derive hash of the version string of the contract.
-        versionHash = keccak256(bytes("1.2"));
+        versionHash = keccak256(bytes(_version()));
 
         // Construct the OfferItem type string.
         bytes memory offerItemTypeString = bytes(
@@ -204,13 +127,10 @@ contract ConsiderationBase is ConsiderationDecoder, ConsiderationEventsAndErrors
         bytes memory orderComponentsPartialTypeString = bytes(
             "OrderComponents("
             "address offerer,"
-            "address zone,"
             "OfferItem[] offer,"
             "ConsiderationItem[] consideration,"
-            "uint8 orderType,"
             "uint256 startTime,"
             "uint256 endTime,"
-            "bytes32 zoneHash,"
             "uint256 salt,"
             "uint256 counter"
             ")"
@@ -242,14 +162,5 @@ contract ConsiderationBase is ConsiderationDecoder, ConsiderationEventsAndErrors
 
         // Derive OrderItem type hash via combination of relevant type strings.
         orderTypehash = keccak256(orderTypeString);
-    }
-
-    function _lookupBulkOrderTypehash(uint256 treeHeight) internal view returns (bytes32 typeHash) {
-        TypehashDirectory directory = _BULK_ORDER_TYPEHASH_DIRECTORY;
-        assembly {
-            let typeHashOffset := add(1, shl(OneWordShift, sub(treeHeight, 1)))
-            extcodecopy(directory, 0, typeHashOffset, OneWord)
-            typeHash := mload(0)
-        }
     }
 }

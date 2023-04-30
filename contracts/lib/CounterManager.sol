@@ -1,19 +1,11 @@
-// SPDX-License-Identifier: MIT
-pragma solidity 0.8.17;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.9;
 
-import {ConsiderationEventsAndErrors} from "../interfaces/ConsiderationEventsAndErrors.sol";
+import {MarketplaceEvents} from "../interfaces/MarketplaceEvents.sol";
+import {MarketplaceBase} from "./MarketplaceBase.sol";
+import {OneWord} from "./MarketplaceConstants.sol";
 
-// import { ReentrancyGuard } from "./ReentrancyGuard.sol";
-
-import {Counter_blockhash_shift, OneWord, TwoWords} from "./ConsiderationConstants.sol";
-
-/**
- * @title CounterManager
- * @author 0age
- * @notice CounterManager contains a storage mapping and related functionality
- *         for retrieving and incrementing a per-offerer counter.
- */
-contract CounterManager is ConsiderationEventsAndErrors {
+contract CounterManager is MarketplaceBase, MarketplaceEvents {
     // Only orders signed using an offerer's current counter are fulfillable.
     mapping(address => uint256) private _counters;
 
@@ -29,14 +21,11 @@ contract CounterManager is ConsiderationEventsAndErrors {
      * @return newCounter The new counter.
      */
     function _incrementCounter() internal returns (uint256 newCounter) {
-        // // Ensure that the reentrancy guard is not currently set.
-        // _assertNonReentrant();
-
         // Utilize assembly to access counters storage mapping directly. Skip
         // overflow check as counter cannot be incremented that far.
         assembly {
             // Use second half of previous block hash as a quasi-random number.
-            let quasiRandomNumber := shr(Counter_blockhash_shift, blockhash(sub(number(), 1)))
+            let quasiRandomNumber := shr(0x80, blockhash(sub(number(), 1)))
 
             // Write the caller to scratch space.
             mstore(0, caller())
@@ -45,7 +34,7 @@ contract CounterManager is ConsiderationEventsAndErrors {
             mstore(OneWord, _counters.slot)
 
             // Derive the storage pointer for the counter value.
-            let storagePointer := keccak256(0, TwoWords)
+            let storagePointer := keccak256(0, 0x40)
 
             // Derive new counter value using random number and original value.
             newCounter := add(quasiRandomNumber, sload(storagePointer))

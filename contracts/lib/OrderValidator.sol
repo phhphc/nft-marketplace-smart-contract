@@ -1,62 +1,31 @@
-// SPDX-License-Identifier: MIT
-pragma solidity 0.8.17;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.9;
 
-import {Order, OrderStatus, OrderParameters, OrderComponents, OrderType} from "./TraderStructs.sol";
+import {OrderStatus, Order, OrderParameters, OrderComponents} from "./MarketplaceStruct.sol";
 import {Verifiers} from "./Verifiers.sol";
-import {Assertions} from "./Assertions.sol";
-import {MemoryPointer} from "../helpers/PointerLibraries.sol";
-
-import {
-    _revertCannotCancelOrder,
-    _revertConsiderationLengthNotEqualToTotalOriginal
-} from "./ConsiderationErrors.sol";
+import {_decodeOrderComponentsAsOrderParameters} from "./MarketplaceDecoder.sol";
+import {_revertCannotCancelOrder} from "./MarketplaceErrors.sol";
 
 contract OrderValidator is Verifiers {
-    // Track status of each order (validated, cancelled, and fraction filled).
     mapping(bytes32 => OrderStatus) private _orderStatus;
 
-    // Track nonces for contract offerers.
-    mapping(address => uint256) internal _contractNonces;
-
-    /**
-     * @dev Internal function to validate an order, determine what portion to
-     *      fill, and update its status. The desired fill amount is supplied as
-     *      a fraction, as is the returned amount to fill.
-     *
-     * @param order   The order to fulfill.
-     * @param revertOnInvalid A boolean indicating whether to revert if the
-     *                        order is invalid due to the time or order status.
-     *
-     * @return orderHash      The order hash.
-     */
     function _validateOrderAndUpdateStatus(
         Order memory order,
         bool revertOnInvalid
     ) internal returns (bytes32 orderHash) {
-        // Retrieve the parameters for the order.
         OrderParameters memory orderParameters = order.parameters;
 
-        // Ensure current timestamp falls between order start time and end time.
         if (!_verifyTime(orderParameters.startTime, orderParameters.endTime, revertOnInvalid)) {
-            // Assuming an invalid time and no revert, return zeroed out values.
             return bytes32(0);
         }
 
-        // Retrieve current counter and use it w/ parameters to get order hash.
-        orderHash = _assertConsiderationLengthAndGetOrderHash(orderParameters);
+        orderHash = _deriveOrderHash(orderParameters, _getCounter(orderParameters.offerer));
 
         // Retrieve the order status using the derived order hash.
         OrderStatus storage orderStatus = _orderStatus[orderHash];
 
         // Ensure order is fillable and is not cancelled.
-        if (
-            !_verifyOrderStatus(
-                orderHash,
-                orderStatus,
-                false, // Allow partially used orders to be filled.
-                revertOnInvalid
-            )
-        ) {
+        if (!_verifyOrderStatus(orderHash, orderStatus, revertOnInvalid)) {
             // Assuming an invalid order status and no revert, return zero fill.
             return bytes32(0);
         }
@@ -111,16 +80,11 @@ contract OrderValidator is Verifiers {
                 // Retrieve the order parameters.
                 OrderParameters memory orderParameters = order.parameters;
 
-                // // Skip contract orders.
-                // if (orderParameters.orderType == OrderType.CONTRACT) {
-                //     continue;
-                // }
-
                 // Move offerer from memory to the stack.
                 offerer = orderParameters.offerer;
 
                 // Get current counter & use it w/ params to derive order hash.
-                orderHash = _assertConsiderationLengthAndGetOrderHash(orderParameters);
+                orderHash = _deriveOrderHash(orderParameters, _getCounter(offerer));
 
                 // Retrieve the order status using the derived order hash.
                 orderStatus = _orderStatus[orderHash];
@@ -129,21 +93,11 @@ contract OrderValidator is Verifiers {
                 _verifyOrderStatus(
                     orderHash,
                     orderStatus,
-                    false, // Signifies that partially filled orders are valid.
                     true // Signifies to revert if the order is invalid.
                 );
 
                 // If the order has not already been validated...
                 if (!orderStatus.isValidated) {
-                    // Ensure that consideration array length is equal to the
-                    // total original consideration items value.
-                    if (
-                        orderParameters.consideration.length !=
-                        orderParameters.totalOriginalConsiderationItems
-                    ) {
-                        _revertConsiderationLengthNotEqualToTotalOriginal();
-                    }
-
                     // Verify the supplied signature.
                     _verifySignature(offerer, orderHash, order.signature);
 
@@ -173,9 +127,6 @@ contract OrderValidator is Verifiers {
      *                   successfully cancelled.
      */
     function _cancel(OrderComponents[] calldata orders) internal returns (bool cancelled) {
-        // Ensure that the reentrancy guard is not currently set.
-        // _assertNonReentrant();
-
         // Declare variables outside of the loop.
         OrderStatus storage orderStatus;
 
@@ -193,24 +144,17 @@ contract OrderValidator is Verifiers {
                 OrderComponents calldata order = orders[i];
 
                 address offerer = order.offerer;
-                address zone = order.zone;
-                OrderType orderType = order.orderType;
 
                 assembly {
-                    // If caller is neither the offerer nor zone, or a contract
-                    // order is present, flag anyInvalidCallerOrContractOrder.
+                    // If caller is not the offerer, flag anyInvalidCallerOrContractOrder.
                     anyInvalidCallerOrContractOrder := or(
                         anyInvalidCallerOrContractOrder,
-                        // orderType == CONTRACT ||
-                        // !(caller == offerer || caller == zone)
-                        or(eq(orderType, 4), iszero(or(eq(caller(), offerer), eq(caller(), zone))))
+                        iszero(eq(caller(), offerer))
                     )
                 }
 
                 bytes32 orderHash = _deriveOrderHash(
-                    _toOrderParametersReturnType(_decodeOrderComponentsAsOrderParameters)(
-                        order.toCalldataPointer()
-                    ),
+                    _decodeOrderComponentsAsOrderParameters(order),
                     order.counter
                 );
 
@@ -222,19 +166,19 @@ contract OrderValidator is Verifiers {
                 orderStatus.isCancelled = true;
 
                 // Emit an event signifying that the order has been cancelled.
-                emit OrderCancelled(orderHash, offerer, zone);
+                emit OrderCancelled(orderHash, offerer);
 
                 // Increment counter inside body of loop for gas efficiency.
                 ++i;
             }
-        }
 
-        if (anyInvalidCallerOrContractOrder) {
-            _revertCannotCancelOrder();
-        }
+            if (anyInvalidCallerOrContractOrder) {
+                _revertCannotCancelOrder();
+            }
 
-        // Return a boolean indicating that orders were successfully cancelled.
-        cancelled = true;
+            // Return a boolean indicating that orders were successfully cancelled.
+            cancelled = true;
+        }
     }
 
     /**

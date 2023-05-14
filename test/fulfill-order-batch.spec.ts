@@ -104,4 +104,48 @@ describe(`fulfillOrderBatch tests (${MARKETPLACE_NAME} v${MARKETPLACE_VERSION})`
         expect(isFulFilled).to.equal(true);
         expect(isCancelled).to.equal(false);
     });
+
+    it("Ignore expired order", async () => {
+        const { marketplace, marketplaceOwner, createOrder } = await loadFixture(marketplaceFixture);
+        const { seller, buyer, zone } = await loadFixture(accountsFixture);
+        const { erc721, mintAndApproveAll721, getTestItem721 } = await loadFixture(erc721Fixture);
+
+        const tokenId = await mintAndApproveAll721(seller, marketplace.address);
+        const offer = [getTestItem721(tokenId)];
+        const consideration = [
+            getItemETH(parseEther("10"), parseEther("10"), seller.address),
+            getItemETH(parseEther("1"), parseEther("1"), zone.address),
+            getItemETH(parseEther("1"), parseEther("1"), marketplaceOwner.address),
+        ];
+        const { order, orderHash, value } = await createOrder(seller, offer, consideration, "EXPIRED", undefined, true);
+
+        const tx = await marketplace.connect(buyer).fulfillOrderBatch([order], { value });
+        expect(tx).to.not.emit(marketplace, "OrderFulfilled");
+    });
+
+    it("Ignore not stated order", async () => {
+        const { marketplace, marketplaceOwner, createOrder } = await loadFixture(marketplaceFixture);
+        const { seller, buyer, zone } = await loadFixture(accountsFixture);
+        const { erc721, mintAndApproveAll721, getTestItem721 } = await loadFixture(erc721Fixture);
+
+        const tokenId = await mintAndApproveAll721(seller, marketplace.address);
+        const offer = [getTestItem721(tokenId)];
+        const consideration = [
+            getItemETH(parseEther("10"), parseEther("10"), seller.address),
+            getItemETH(parseEther("1"), parseEther("1"), zone.address),
+            getItemETH(parseEther("1"), parseEther("1"), marketplaceOwner.address),
+        ];
+        const { order, orderHash, value } = await createOrder(
+            seller,
+            offer,
+            consideration,
+            "NOT_STARTED",
+            undefined,
+            true,
+        );
+
+        console.log("hi");
+        const tx = await marketplace.connect(buyer).fulfillOrderBatch([order], { value });
+        expect(tx).to.not.emit(marketplace, "OrderFulfilled");
+    });
 });

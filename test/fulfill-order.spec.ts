@@ -81,4 +81,41 @@ describe(`fulfillOrder tests (${MARKETPLACE_NAME} v${MARKETPLACE_VERSION})`, fun
             .to.revertedWithCustomError(marketplace, "OrderAlreadyFilled")
             .withArgs(orderHash);
     });
+
+    it("Reverse on expired order", async () => {
+        const { marketplace, marketplaceOwner, createOrder } = await loadFixture(marketplaceFixture);
+        const { seller, buyer, zone } = await loadFixture(accountsFixture);
+        const { erc721, mintAndApproveAll721, getTestItem721 } = await loadFixture(erc721Fixture);
+
+        const tokenId = await mintAndApproveAll721(seller, marketplace.address);
+        const offer = [getTestItem721(tokenId)];
+        const consideration = [getItemETH(parseEther("10"), parseEther("10"), seller.address)];
+        const { order, orderHash, value } = await createOrder(seller, offer, consideration, "EXPIRED", undefined, true);
+
+        await expect(marketplace.connect(buyer).fulfillOrder(order, { value }))
+            .to.be.revertedWithCustomError(marketplace, "InvalidTime")
+            .withArgs(order.parameters.startTime, order.parameters.endTime);
+    });
+
+    it("Reverse on not stated order", async () => {
+        const { marketplace, marketplaceOwner, createOrder } = await loadFixture(marketplaceFixture);
+        const { seller, buyer, zone } = await loadFixture(accountsFixture);
+        const { erc721, mintAndApproveAll721, getTestItem721 } = await loadFixture(erc721Fixture);
+
+        const tokenId = await mintAndApproveAll721(seller, marketplace.address);
+        const offer = [getTestItem721(tokenId)];
+        const consideration = [getItemETH(parseEther("10"), parseEther("10"), seller.address)];
+        const { order, orderHash, value } = await createOrder(
+            seller,
+            offer,
+            consideration,
+            "NOT_STARTED",
+            undefined,
+            true,
+        );
+
+        await expect(marketplace.connect(buyer).fulfillOrder(order, { value }))
+            .to.be.revertedWithCustomError(marketplace, "InvalidTime")
+            .withArgs(order.parameters.startTime, order.parameters.endTime);
+    });
 });

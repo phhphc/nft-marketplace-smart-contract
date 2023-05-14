@@ -535,7 +535,7 @@ contract OrderCombiner is OrderValidator, AmountDeriver, Executor {
         // duplicate recipient address to stack to avoid stack-too-deep
         address _recipient = recipient;
 
-        for (uint256 i = 0; i < totalOrders; ) {
+        for (uint256 i = 0; i < totalOrders; i++) {
             Order memory advancedOrder = orders[i];
 
             if (orderHashes[i] == bytes32(0)) {
@@ -617,8 +617,6 @@ contract OrderCombiner is OrderValidator, AmountDeriver, Executor {
                     considerationItem.startAmount = originalAmount;
                 }
             }
-
-            i++;
         }
 
         // Determine whether any native token balance remains.

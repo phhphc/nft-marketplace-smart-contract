@@ -3,6 +3,7 @@ pragma solidity ^0.8.17;
 
 import {Order, OrderComponents, OrderParameters} from "./lib/MarketplaceStruct.sol";
 import {OrderCombiner} from "./lib/OrderCombiner.sol";
+import "hardhat/console.sol";
 
 contract Marketplace is OrderCombiner {
     function fulfillOrder(Order calldata order) external payable returns (bool fulfilled) {

@@ -21,7 +21,7 @@ async function main() {
         await myToken.connect(seller).setApprovalForAll(marketplace.address, true);
     }
 
-    // const nftId = ("12389544083919947176613049569731823752");
+    // const nftId = ("0x0e8a6496903051988901c2cedbe07ad0");
     const nftId = randomBN();
     const uri = `https://gateway.pinata.cloud/ipfs/QmYTUyhsTWGkzGMDrgTJmDnzcuYEwejzPR6o7GVZ3LcmRv/${nftId
         .mod(20)
@@ -68,14 +68,18 @@ async function main() {
     console.log(orderString);
 
     console.log({ orderHash });
-    console.log("sleep");
-    await new Promise(res => {
-        setTimeout(() => res(0), 10000);
-    });
-    console.log("wakeup");
+    // console.log("sleep");
+    // await new Promise(res => {
+    //     setTimeout(() => res(0), 10000);
+    // });
+    // console.log("wakeup");
 
-    var tx = await marketplace.connect(buyer).fulfillOrder(order, { value });
-    await tx.wait();
+    // var tx = await marketplace.connect(seller).incrementCounter();
+    // await tx.wait();
+    // var tx = await marketplace.connect(seller).cancel([orderComponents]);
+    // await tx.wait();
+    // var tx = await marketplace.connect(buyer).fulfillOrder(order, { value });
+    // await tx.wait();
 
     console.log({ txBlockNumber: tx.blockNumber, txHash: tx.hash, orderHash });
     console.log(await marketplace.getOrderStatus(orderHash));

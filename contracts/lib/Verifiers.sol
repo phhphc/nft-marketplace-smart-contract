@@ -27,7 +27,9 @@ contract Verifiers is GettersAndDerivers {
         uint256 endTime,
         bool revertOnInvalid
     ) internal view returns (bool valid) {
-        valid = (startTime < block.timestamp || endTime > block.timestamp);
+        assembly {
+            valid := and(iszero(gt(startTime, timestamp())), gt(endTime, timestamp()))
+        }
 
         if (revertOnInvalid && !valid) {
             _revertInvalidTime(startTime, endTime);
